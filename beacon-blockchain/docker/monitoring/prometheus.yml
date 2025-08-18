@@ -1,0 +1,40 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  # BEACON API nodes
+  - job_name: "beacon-api"
+    static_configs:
+      - targets:
+          - "beacon-node-1:8090"
+          - "beacon-node-2:8090"
+          - "beacon-node-3:8090"
+    metrics_path: "/metrics"
+    scrape_interval: 5s
+    scrape_timeout: 5s
+
+  # Load balancer
+  - job_name: "beacon-lb"
+    static_configs:
+      - targets: ["beacon-lb:80"]
+    metrics_path: "/nginx_status"
+    scrape_interval: 15s
+
+  # Prometheus self-monitoring
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+# Optional: Remote write configuration for long-term storage
+# remote_write:
+#   - url: "https://your-remote-prometheus-endpoint/api/v1/write"

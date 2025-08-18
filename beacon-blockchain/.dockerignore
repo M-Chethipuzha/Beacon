@@ -1,0 +1,78 @@
+# Ignore build artifacts and temporary files
+target/
+# Note: Cargo.lock is needed for Docker builds for reproducible dependencies
+# Cargo.lock
+
+# Ignore IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+*.tmp
+
+# Ignore log files
+*.log
+logs/
+
+# Ignore environment and configuration files
+.env
+.env.local
+.env.production
+.env.development
+
+# Ignore Docker volumes and data
+data/
+storage/
+db_data/
+
+# Ignore backup files
+backups/
+*.backup
+*.bak
+
+# Ignore compiled binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Ignore test artifacts
+test-results/
+coverage/
+
+# Ignore documentation build artifacts
+docs/_build/
+docs/.sphinx-build/
+
+# Ignore package manager files
+node_modules/
+package-lock.json
+yarn.lock
+
+# Ignore certificates and keys
+*.pem
+*.key
+*.crt
+*.p12
+ssl/
+
+# Ignore temporary development files
+tmp/
+temp/
+.tmp/
+
+# Ignore Go build artifacts
+go.sum.bak
+vendor/
+
+# Ignore Rust analyzer cache
+.rust-analyzer/
+
+# Ignore container data
+docker-data/
+volumes/

@@ -1,0 +1,31 @@
+[package]
+name = "beacon-node"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "beacon-node"
+path = "src/main.rs"
+
+[dependencies]
+beacon-core = { path = "../beacon-core" }
+beacon-networking = { path = "../beacon-networking" }
+beacon-storage = { path = "../beacon-storage" }
+beacon-consensus = { path = "../beacon-consensus" }
+beacon-api = { path = "../beacon-api" }
+beacon-chaincode = { path = "../beacon-chaincode" }
+beacon-crypto = { path = "../beacon-crypto" }
+
+tokio = { workspace = true }
+serde = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+clap = { workspace = true }
+config = { workspace = true }
+anyhow = { workspace = true }
+futures = { workspace = true }
+libp2p = { workspace = true }
+toml = "0.8"
+
+[dev-dependencies]
+tempfile = "3.0"

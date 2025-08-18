@@ -1,0 +1,105 @@
+# BEACON Blockchain Development Docker Compose
+# Optimized for development with hot reload and debugging
+
+version: "3.8"
+
+services:
+  # Development BEACON Node
+  beacon-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: beacon-dev
+    hostname: beacon-dev
+    environment:
+      - BEACON_NODE_ID=beacon-dev
+      - BEACON_API_PORT=3000
+      - BEACON_P2P_PORT=8080
+      - BEACON_GRPC_PORT=9000
+      - BEACON_DISCOVERY_PORT=8081
+      - BEACON_DATA_DIR=/data/beacon/storage
+      - BEACON_LOG_LEVEL=debug
+      - BEACON_NETWORK_MODE=development
+      - RUST_LOG=debug
+      - RUST_BACKTRACE=1
+    ports:
+      - "3000:3000" # REST API
+      - "8080:8080" # P2P Network
+      - "8081:8081" # Discovery
+      - "9000:9000" # gRPC
+    volumes:
+      - .:/app:cached
+      - beacon-dev-data:/data/beacon/storage
+      - beacon-dev-logs:/data/beacon/logs
+      - ./docker/config:/etc/beacon:ro
+      - cargo-cache:/usr/local/cargo/registry
+      - target-cache:/app/target
+    networks:
+      - beacon-dev-network
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Development Database (if needed for testing)
+  beacon-db-dev:
+    image: postgres:15-alpine
+    container_name: beacon-db-dev
+    environment:
+      - POSTGRES_DB=beacon_dev
+      - POSTGRES_USER=beacon
+      - POSTGRES_PASSWORD=beacon_dev_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - beacon-db-dev-data:/var/lib/postgresql/data
+    networks:
+      - beacon-dev-network
+    restart: unless-stopped
+
+  # Redis for caching (development)
+  beacon-redis-dev:
+    image: redis:7-alpine
+    container_name: beacon-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - beacon-redis-dev-data:/data
+    networks:
+      - beacon-dev-network
+    restart: unless-stopped
+
+  # Development monitoring
+  beacon-monitor-dev:
+    image: prom/prometheus:latest
+    container_name: beacon-monitor-dev
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/monitoring/prometheus-dev.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - beacon-dev-network
+    restart: unless-stopped
+
+networks:
+  beacon-dev-network:
+    driver: bridge
+
+volumes:
+  beacon-dev-data:
+    driver: local
+  beacon-dev-logs:
+    driver: local
+  beacon-db-dev-data:
+    driver: local
+  beacon-redis-dev-data:
+    driver: local
+  cargo-cache:
+    driver: local
+  target-cache:
+    driver: local

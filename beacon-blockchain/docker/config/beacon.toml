@@ -1,0 +1,57 @@
+# BEACON Node Configuration Template
+# Production configuration for containerized deployment
+
+[node]
+id = "${BEACON_NODE_ID}"
+data_dir = "${BEACON_DATA_DIR}"
+log_level = "${BEACON_LOG_LEVEL}"
+network_mode = "${BEACON_NETWORK_MODE}"
+
+[api]
+host = "0.0.0.0"
+port = ${BEACON_API_PORT}
+enable_cors = true
+max_request_size = "10MB"
+timeout = "30s"
+
+[network]
+p2p_port = ${BEACON_P2P_PORT}
+discovery_port = ${BEACON_DISCOVERY_PORT}
+bootstrap_peers = "${BEACON_BOOTSTRAP_PEERS}"
+max_peers = 50
+connection_timeout = "10s"
+
+[chaincode]
+grpc_port = ${BEACON_GRPC_PORT}
+execution_timeout = "60s"
+max_concurrent_executions = 10
+
+[storage]
+backend = "rocksdb"
+cache_size = "256MB"
+max_open_files = 1000
+compression = "snappy"
+
+[consensus]
+algorithm = "poa"
+block_time = "5s"
+max_block_size = "1MB"
+
+[logging]
+level = "${BEACON_LOG_LEVEL}"
+format = "json"
+output = "/data/beacon/logs/beacon.log"
+max_size = "100MB"
+max_files = 10
+
+[security]
+enable_tls = false
+cert_file = "/etc/beacon/ssl/cert.pem"
+key_file = "/etc/beacon/ssl/key.pem"
+enable_auth = true
+jwt_secret = "your-jwt-secret-here"
+
+[metrics]
+enable = true
+port = 8090
+path = "/metrics"

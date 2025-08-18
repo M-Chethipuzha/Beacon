@@ -1,0 +1,9 @@
+beacon-blockchain/beacon_data
+beacon-blockchain/target
+beacon-blockchain/cargo.lock
+beacon-blockchain/ProjectDocument.md
+beacon-blockchain/DEVELOPMENT_STATUS.md
+
+beacon-blockchain/tests/target
+
+beacon-blockchain/*.exe

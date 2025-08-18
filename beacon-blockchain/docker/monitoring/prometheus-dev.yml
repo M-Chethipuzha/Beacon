@@ -1,0 +1,29 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  # Development BEACON node
+  - job_name: "beacon-dev"
+    static_configs:
+      - targets: ["beacon-dev:8090"]
+    metrics_path: "/metrics"
+    scrape_interval: 5s
+    scrape_timeout: 5s
+
+  # Development database
+  - job_name: "beacon-db-dev"
+    static_configs:
+      - targets: ["beacon-db-dev:5432"]
+    scrape_interval: 15s
+
+  # Redis
+  - job_name: "beacon-redis-dev"
+    static_configs:
+      - targets: ["beacon-redis-dev:6379"]
+    scrape_interval: 15s
+
+  # Prometheus self-monitoring
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]

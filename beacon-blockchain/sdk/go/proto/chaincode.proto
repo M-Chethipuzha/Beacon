@@ -1,0 +1,181 @@
+syntax = "proto3";
+
+package chaincode;
+
+option go_package = "github.com/beacon-blockchain/sdk-go/proto";
+
+// The chaincode shim service that allows Go chaincode to communicate with the Rust node
+service ChaincodeShim {
+  // State management operations
+  rpc GetState(GetStateRequest) returns (GetStateResponse);
+  rpc PutState(PutStateRequest) returns (PutStateResponse);
+  rpc DeleteState(DeleteStateRequest) returns (DeleteStateResponse);
+
+  // Range query operations
+  rpc GetStateByRange(GetStateByRangeRequest) returns (GetStateByRangeResponse);
+  rpc GetStateByPartialCompositeKey(GetStateByPartialCompositeKeyRequest) returns (GetStateByPartialCompositeKeyResponse);
+
+  // Transaction context operations
+  rpc GetTransactionID(Empty) returns (GetTransactionIDResponse);
+  rpc GetChannelID(Empty) returns (GetChannelIDResponse);
+  rpc GetCreator(Empty) returns (GetCreatorResponse);
+  rpc GetTransactionTimestamp(Empty) returns (GetTransactionTimestampResponse);
+
+  // Event operations
+  rpc SetEvent(SetEventRequest) returns (SetEventResponse);
+
+  // Invocation operations
+  rpc InvokeChaincode(InvokeChaincodeRequest) returns (InvokeChaincodeResponse);
+
+  // Logging operations
+  rpc LogMessage(LogMessageRequest) returns (LogMessageResponse);
+}
+
+// Empty message for parameterless requests
+message Empty {}
+
+// State management messages
+message GetStateRequest {
+  string key = 1;
+}
+
+message GetStateResponse {
+  bytes value = 1;
+  bool found = 2;
+}
+
+message PutStateRequest {
+  string key = 1;
+  bytes value = 2;
+}
+
+message PutStateResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+message DeleteStateRequest {
+  string key = 1;
+}
+
+message DeleteStateResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+// Range query messages
+message GetStateByRangeRequest {
+  string start_key = 1;
+  string end_key = 2;
+}
+
+message GetStateByRangeResponse {
+  repeated KeyValue results = 1;
+  bool has_more = 2;
+  string bookmark = 3;
+}
+
+message GetStateByPartialCompositeKeyRequest {
+  string object_type = 1;
+  repeated string keys = 2;
+}
+
+message GetStateByPartialCompositeKeyResponse {
+  repeated KeyValue results = 1;
+  bool has_more = 2;
+  string bookmark = 3;
+}
+
+message KeyValue {
+  string key = 1;
+  bytes value = 2;
+}
+
+// Transaction context messages
+message GetTransactionIDResponse {
+  string transaction_id = 1;
+}
+
+message GetChannelIDResponse {
+  string channel_id = 1;
+}
+
+message GetCreatorResponse {
+  bytes creator = 1;
+}
+
+message GetTransactionTimestampResponse {
+  int64 timestamp = 1;
+}
+
+// Event messages
+message SetEventRequest {
+  string name = 1;
+  bytes payload = 2;
+}
+
+message SetEventResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+// Chaincode invocation messages
+message InvokeChaincodeRequest {
+  string chaincode_name = 1;
+  string function = 2;
+  repeated string args = 3;
+  string channel = 4;
+}
+
+message InvokeChaincodeResponse {
+  bytes payload = 1;
+  string message = 2;
+  int32 status = 3;
+}
+
+// Logging messages
+message LogMessageRequest {
+  LogLevel level = 1;
+  string message = 2;
+}
+
+message LogMessageResponse {
+  bool success = 1;
+}
+
+enum LogLevel {
+  DEBUG = 0;
+  INFO = 1;
+  WARN = 2;
+  ERROR = 3;
+}
+
+// Chaincode execution request/response (for the Rust side)
+message ChaincodeExecutionRequest {
+  string chaincode_id = 1;
+  string function = 2;
+  repeated string args = 3;
+  string transaction_id = 4;
+  string channel_id = 5;
+  bytes creator = 6;
+  int64 timestamp = 7;
+}
+
+message ChaincodeExecutionResponse {
+  bytes payload = 1;
+  string message = 2;
+  int32 status = 3;
+  repeated Event events = 4;
+  repeated StateChange state_changes = 5;
+}
+
+message Event {
+  string name = 1;
+  bytes payload = 2;
+}
+
+message StateChange {
+  string key = 1;
+  bytes value = 2;
+  string operation = 3; // PUT, DELETE
+}

@@ -1,0 +1,20 @@
+[package]
+name = "beacon-chaincode"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+beacon-core = { path = "../beacon-core" }
+beacon-storage = { path = "../beacon-storage" }
+tokio = { workspace = true }
+tonic = { workspace = true }
+prost = { workspace = true }
+serde = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+uuid = { workspace = true }
+futures = { workspace = true }
+async-trait = { workspace = true }
+
+[build-dependencies]
+tonic-build = { workspace = true }

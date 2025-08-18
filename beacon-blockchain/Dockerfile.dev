@@ -1,0 +1,54 @@
+# BEACON Blockchain - Development Docker Image
+# Optimized for development with debugging tools and hot reload
+
+FROM rust:1.75-bullseye
+
+# Install development dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    protobuf-compiler \
+    cmake \
+    curl \
+    git \
+    vim \
+    htop \
+    net-tools \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install additional development tools
+RUN cargo install cargo-watch cargo-expand cargo-audit
+
+# Create app directory
+WORKDIR /app
+
+# Create beacon user (with shell for development)
+RUN useradd -m -s /bin/bash beacon \
+    && usermod -aG sudo beacon \
+    && echo "beacon ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Create data directories
+RUN mkdir -p /data/beacon/storage /data/beacon/logs /data/beacon/config \
+    && chown -R beacon:beacon /data/beacon /app
+
+# Switch to beacon user
+USER beacon
+
+# Copy configuration templates
+COPY docker/config/ /etc/beacon/
+
+# Expose ports for development
+EXPOSE 3000 8080 8081 9000
+
+# Development health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:3000/health || exit 1
+
+# Default command for development (with auto-reload)
+CMD ["cargo", "watch", "-x", "run --bin beacon-api"]
+
+# Metadata
+LABEL org.opencontainers.image.title="BEACON Blockchain Development"
+LABEL org.opencontainers.image.description="Development environment for BEACON blockchain"
+LABEL org.opencontainers.image.version="1.0.0-dev"

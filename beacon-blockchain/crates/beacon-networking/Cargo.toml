@@ -1,0 +1,23 @@
+[package]
+name = "beacon-networking"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+beacon-core = { path = "../beacon-core" }
+libp2p = { workspace = true }
+tokio = { workspace = true }
+tokio-stream = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+futures = { workspace = true }
+uuid = { workspace = true }
+hex = { workspace = true }
+bincode = { workspace = true }
+ed25519-dalek = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
