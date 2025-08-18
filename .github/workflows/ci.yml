@@ -1,0 +1,291 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  test:
+    name: Test Suite
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        rust: [stable, beta]
+        include:
+          - os: ubuntu-latest
+            rust: nightly
+        exclude:
+          - os: windows-latest
+            rust: beta
+          - os: macos-latest
+            rust: beta
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust ${{ matrix.rust }}
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          override: true
+          components: rustfmt, clippy
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ matrix.os }}-${{ matrix.rust }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ matrix.os }}-${{ matrix.rust }}-cargo-
+            ${{ matrix.os }}-cargo-
+
+      - name: Check formatting
+        if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest'
+        run: |
+          cd beacon-blockchain
+          cargo fmt --all -- --check
+
+      - name: Run Clippy
+        if: matrix.rust == 'stable'
+        run: |
+          cd beacon-blockchain
+          cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Build all targets
+        run: |
+          cd beacon-blockchain
+          cargo build --all-targets --verbose
+
+      - name: Run tests
+        run: |
+          cd beacon-blockchain
+          cargo test --all --verbose
+
+      - name: Run integration tests
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cd beacon-blockchain
+          cargo test --test integration --verbose
+
+      - name: Generate documentation
+        if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest'
+        run: |
+          cd beacon-blockchain
+          cargo doc --no-deps --document-private-items --all-features
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: test-results-${{ matrix.os }}-${{ matrix.rust }}
+          path: target/
+
+  cross-scs-integration:
+    name: Cross-SCS Integration
+    runs-on: ubuntu-latest
+    needs: test
+
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: beacon_integration
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Install Python dependencies
+        run: |
+          cd edge-gateway-scs/gateway-app
+          pip install -r requirements.txt
+
+      - name: Set up Docker Compose
+        run: |
+          docker-compose --version
+
+      - name: Start BEACON services
+        run: |
+          # Start blockchain node
+          cd beacon-blockchain
+          docker-compose up -d
+
+          # Wait for blockchain to be ready
+          sleep 30
+
+          # Start edge gateway
+          cd ../edge-gateway-scs
+          docker-compose up -d
+
+          # Wait for gateway to connect
+          sleep 20
+
+      - name: Run cross-SCS tests
+        run: |
+          # Test blockchain API
+          curl -f http://localhost:8080/api/v1/health
+
+          # Test gateway connection to blockchain
+          python edge-gateway-scs/test_integration.py
+
+          # Test policy enforcement flow
+          ./scripts/test-end-to-end-flow.sh
+
+      - name: Check service logs
+        if: failure()
+        run: |
+          echo "=== Blockchain Logs ==="
+          docker-compose -f beacon-blockchain/docker-compose.yml logs
+          echo "=== Gateway Logs ==="
+          docker-compose -f edge-gateway-scs/docker-compose.yml logs
+
+      - name: Cleanup services
+        if: always()
+        run: |
+          docker-compose -f edge-gateway-scs/docker-compose.yml down
+          docker-compose -f beacon-blockchain/docker-compose.yml down
+
+  performance:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-perf-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run benchmarks
+        run: |
+          cd beacon-blockchain
+          cargo bench --all
+
+      - name: Store benchmark results
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: "cargo"
+          output-file-path: beacon-blockchain/target/criterion/reports/index.html
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          comment-on-alert: true
+          alert-threshold: "150%"
+          fail-on-alert: true
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Security audit
+        run: |
+          cd beacon-blockchain
+          cargo install cargo-audit
+          cargo audit --deny warnings
+
+      - name: Check for unsafe code
+        run: |
+          cd beacon-blockchain
+          # Find any unsafe blocks and review them
+          find . -name "*.rs" -exec grep -l "unsafe" {} \; || true
+
+      - name: Dependency license check
+        run: |
+          cd beacon-blockchain
+          cargo install cargo-license
+          cargo license --all-features
+
+      - name: Container security scan
+        run: |
+          cd beacon-blockchain
+          docker build -t beacon-security-test .
+
+          # Install and run Trivy
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install trivy
+
+          trivy image --exit-code 1 --severity HIGH,CRITICAL beacon-security-test
+
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: llvm-tools-preview
+
+      - name: Install cargo-llvm-cov
+        run: cargo install cargo-llvm-cov
+
+      - name: Generate coverage report
+        run: |
+          cd beacon-blockchain
+          cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: beacon-blockchain/lcov.info
+          fail_ci_if_error: true

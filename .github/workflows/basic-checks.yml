@@ -1,0 +1,40 @@
+name: Basic Checks
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  basic-checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+
+      - name: Check code formatting
+        run: |
+          cd beacon-blockchain
+          cargo fmt --all -- --check
+
+      - name: Run basic linting
+        run: |
+          cd beacon-blockchain
+          cargo clippy --all-targets -- -D warnings
+
+      - name: Run tests
+        run: |
+          cd beacon-blockchain
+          cargo test --all
+
+      - name: Build project
+        run: |
+          cd beacon-blockchain
+          cargo build --all
