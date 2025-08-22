@@ -1,0 +1,32 @@
+# BEACON MQTT Access Control List
+
+# ===============================
+
+# Gateway can access all topics for management
+
+user beacon-gateway
+topic readwrite #
+
+# Device topic patterns
+
+# Devices can only publish to their own data topics
+
+pattern readwrite beacon/%u/device/+/data
+pattern readwrite beacon/%u/device/+/status
+pattern readwrite beacon/%u/device/+/command
+
+# Admin topics (only gateway access)
+
+topic deny beacon/admin/#
+topic deny beacon/config/#
+topic deny beacon/policy/#
+
+# General BEACON topics for authenticated devices
+
+pattern read beacon/broadcast/+
+pattern read beacon/announcement/+
+
+# Device management topics
+
+pattern readwrite beacon/%u/management/+
+pattern readwrite beacon/%u/alerts/+

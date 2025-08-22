@@ -1,0 +1,41 @@
+# BEACON Edge Gateway - Docker Monitoring Configuration
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "rules/*.yml"
+
+scrape_configs:
+  # Edge Gateway metrics
+  - job_name: "beacon-edge-gateway"
+    static_configs:
+      - targets: ["beacon-edge-gateway:9090"]
+    scrape_interval: 30s
+    metrics_path: "/metrics"
+
+  # MQTT broker metrics (if available)
+  - job_name: "mosquitto"
+    static_configs:
+      - targets: ["mosquitto:9001"]
+    scrape_interval: 30s
+    metrics_path: "/metrics"
+
+  # System metrics
+  - job_name: "node-exporter"
+    static_configs:
+      - targets: ["localhost:9100"]
+    scrape_interval: 30s
+
+  # Docker container metrics
+  - job_name: "cadvisor"
+    static_configs:
+      - targets: ["localhost:8080"]
+    scrape_interval: 30s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093

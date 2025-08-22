@@ -1,0 +1,161 @@
+# BEACON Edge Gateway SCS - Complete Requirements
+# ==============================================
+
+Dependencies for all Edge Gateway SCS components and services.
+
+# Core Gateway Application
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+httpx==0.25.2
+aiofiles==23.2.1
+toml==0.10.2
+cryptography==41.0.8
+python-multipart==0.0.6
+
+# Database and Storage
+aiosqlite==0.19.0
+alembic==1.13.1
+sqlalchemy==2.0.23
+
+# Blockchain Integration
+grpcio==1.59.3
+grpcio-tools==1.59.3
+protobuf==4.25.1
+
+# MQTT Communication
+paho-mqtt==1.6.1
+asyncio-mqtt==0.16.1
+
+# CoAP Communication
+aiocoap==0.4.7
+aiocoap-fileserver==0.3
+
+# VPN Management
+python-wireguard==0.2.2
+
+# Monitoring and Metrics
+prometheus-client==0.19.0
+prometheus-async==22.2.0
+psutil==5.9.6
+
+# HTTP and Web
+aiohttp==3.9.1
+aiohttp-cors==0.7.0
+websockets==12.0
+
+# Async and Concurrency
+asyncio==3.4.3
+aiocontextvars==0.2.2
+contextvars==2.4
+
+# Utilities
+python-dateutil==2.8.2
+pytz==2023.3
+click==8.1.7
+rich==13.7.0
+typer==0.9.0
+
+# Security
+bcrypt==4.1.2
+passlib[bcrypt]==1.7.4
+python-jose[cryptography]==3.3.0
+python-ldap==3.4.3
+
+# Logging and Configuration
+structlog==23.2.0
+python-json-logger==2.0.7
+PyYAML==6.0.1
+
+# Development and Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+httpx-test==0.4.0
+factory-boy==3.3.0
+faker==20.1.0
+
+# Code Quality
+black==23.11.0
+isort==5.12.0
+flake8==6.1.0
+mypy==1.7.1
+pre-commit==3.6.0
+
+# Documentation
+mkdocs==1.5.3
+mkdocs-material==9.4.8
+mkdocs-mermaid2-plugin==1.1.1
+
+# Docker Integration
+docker==6.1.3
+docker-compose==1.29.2
+
+# System Integration
+systemd-python==235
+python-daemon==3.0.1
+python-pidfile==3.0.0
+
+# Network and Protocol Support
+netifaces==0.11.0
+netaddr==0.9.0
+dnspython==2.4.2
+scapy==2.5.0
+
+# Encryption and Hashing
+hashlib2==2.2.1
+argon2-cffi==23.1.0
+
+# Time and Scheduling
+schedule==1.2.0
+croniter==2.0.1
+APScheduler==3.10.4
+
+# Data Validation and Serialization
+marshmallow==3.20.1
+cerberus==1.3.5
+jsonschema==4.20.0
+
+# Performance Monitoring
+memory-profiler==0.61.0
+py-spy==0.3.14
+line-profiler==4.1.1
+
+# Optional Dependencies for Enhanced Features
+# Uncomment as needed
+
+# Advanced Crypto
+# cryptg==0.4.0
+# pycryptodome==3.19.0
+
+# Message Queuing
+# redis==5.0.1
+# aioredis==2.0.1
+
+# Additional Protocols
+# pymodbus==3.5.2  # Modbus support
+# opcua==0.98.13   # OPC-UA support
+
+# Machine Learning (for edge analytics)
+# numpy==1.24.4
+# scipy==1.11.4
+# scikit-learn==1.3.2
+
+# Edge Computing
+# tensorflow-lite==2.13.0
+# onnxruntime==1.16.3
+
+# Platform-specific dependencies
+# Windows
+# pywin32==306; sys_platform == "win32"
+# wmi==1.5.1; sys_platform == "win32"
+
+# Linux
+# python-systemd==235; sys_platform == "linux"
+# psutil==5.9.6; sys_platform == "linux"
+
+# Hardware abstraction
+# RPi.GPIO==0.7.1; platform_machine == "armv7l"  # Raspberry Pi
+# adafruit-circuitpython-*  # Various sensor libraries

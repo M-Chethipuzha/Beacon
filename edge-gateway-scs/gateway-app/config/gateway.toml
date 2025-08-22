@@ -1,0 +1,96 @@
+# BEACON Edge Gateway Configuration
+
+[gateway]
+# Unique gateway identifier (auto-generated if not specified)
+id = "gateway-edge-001"
+name = "BEACON Edge Gateway"
+location = "Building A, Floor 1"
+capabilities = ["mqtt", "coap", "policy_enforcement", "vpn_client"]
+
+[io_scs]
+# I&O SCS blockchain discovery settings
+discovery_domains = ["_beacon-io._tcp.beacon.local"]
+static_nodes = ["localhost:8080", "192.168.1.100:8080"]
+health_check_interval = 30
+connection_timeout = 10
+retry_attempts = 3
+
+[mqtt]
+# MQTT broker configuration
+broker_host = "localhost"
+broker_port = 1883
+broker_port_tls = 8883
+use_tls = false
+keepalive = 60
+qos_default = 1
+
+# MQTT authentication (if required)
+username = ""
+password = ""
+
+# Client configuration
+client_id_prefix = "beacon-gateway"
+clean_session = true
+reconnect_delay = 5
+max_reconnect_attempts = 10
+
+[coap]
+# CoAP server configuration
+server_host = "0.0.0.0"
+server_port = 5683
+use_dtls = false
+max_message_size = 1024
+
+[policy]
+# Policy cache and enforcement settings
+cache_file = "data/policies.db"
+sync_interval = 300
+default_decision = "deny"
+cache_cleanup_interval = 3600
+policy_refresh_interval = 60
+
+[vpn]
+# VPN client configuration
+enabled = false
+type = "openvpn"  # openvpn or wireguard
+config_file = "config/vpn/client.ovpn"
+auto_reconnect = true
+connection_timeout = 30
+
+[api]
+# Local REST API server
+host = "0.0.0.0"
+port = 8081
+enable_cors = true
+debug = false
+rate_limit = 100  # requests per minute
+
+[logging]
+# Logging configuration
+level = "INFO"
+file = "logs/gateway.log"
+max_file_size = "10MB"
+backup_count = 5
+format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+[security]
+# Security settings
+enable_device_authentication = true
+device_certificate_path = "certs/devices/"
+gateway_private_key = "certs/gateway-private.pem"
+gateway_certificate = "certs/gateway-cert.pem"
+ca_certificate = "certs/ca-cert.pem"
+
+[monitoring]
+# Monitoring and metrics
+enable_prometheus = true
+prometheus_port = 9090
+metrics_interval = 30
+health_check_endpoint = "/health"
+
+[privacy]
+# Privacy-preserving settings
+device_id_hashing = true
+hash_salt_file = "data/gateway-salt.txt"
+audit_logging = true
+data_retention_days = 30

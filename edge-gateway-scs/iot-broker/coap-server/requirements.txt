@@ -1,0 +1,5 @@
+# BEACON CoAP Server Requirements
+aiocoap>=0.4.5
+asyncio>=3.9.0
+pyyaml>=6.0
+structlog>=23.1.0

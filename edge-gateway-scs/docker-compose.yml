@@ -1,0 +1,284 @@
+version: "3.8"
+
+services:
+  # Main Edge Gateway Application
+  beacon-edge-gateway:
+    build:
+      context: ./gateway-app
+      dockerfile: Dockerfile
+    container_name: beacon-edge-gateway
+    hostname: beacon-gateway
+    restart: unless-stopped
+
+    ports:
+      - "8081:8081" # API server
+      - "5683:5683/udp" # CoAP server
+      - "9090:9090" # Prometheus metrics
+
+    volumes:
+      - ./gateway-app/config:/app/config:ro
+      - ./gateway-app/data:/app/data
+      - ./gateway-app/logs:/app/logs
+      - ./gateway-app/certs:/app/certs:ro
+
+    environment:
+      - BEACON_CONFIG_FILE=/app/config/gateway.toml
+      - BEACON_LOG_LEVEL=INFO
+      - BEACON_GATEWAY_ID=gateway-edge-001
+
+    networks:
+      - beacon-edge-network
+
+    depends_on:
+      - beacon-mosquitto
+      - beacon-coap-server
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # MQTT Broker (Mosquitto)
+  beacon-mosquitto:
+    build:
+      context: ./iot-broker/mosquitto
+      dockerfile: Dockerfile
+    container_name: beacon-mosquitto
+    hostname: mosquitto
+    restart: unless-stopped
+
+    ports:
+      - "1883:1883" # MQTT
+      - "8883:8883" # MQTT over TLS
+      - "9001:9001" # WebSocket
+      - "9002:9002" # WebSocket over TLS
+
+    volumes:
+      - ./iot-broker/mosquitto/config:/mosquitto/config:ro
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-logs:/mosquitto/log
+      - ./gateway-app/certs:/mosquitto/config/certs:ro
+
+    networks:
+      - beacon-edge-network
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mosquitto_pub",
+          "-h",
+          "localhost",
+          "-p",
+          "1883",
+          "-t",
+          "test",
+          "-m",
+          "health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # CoAP Server
+  beacon-coap-server:
+    build:
+      context: ./iot-broker/coap-server
+      dockerfile: Dockerfile
+    container_name: beacon-coap-server
+    hostname: coap-server
+    restart: unless-stopped
+
+    ports:
+      - "5684:5683/udp" # CoAP (mapped to avoid conflict with gateway CoAP)
+
+    volumes:
+      - ./iot-broker/coap-server/config:/app/config:ro
+      - coap-logs:/var/log
+
+    environment:
+      - COAP_CONFIG_FILE=/app/config/coap.conf
+
+    networks:
+      - beacon-edge-network
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import socket; s=socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.settimeout(5); s.connect(('localhost', 5683)); s.close()",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # OpenVPN Client (optional)
+  beacon-openvpn:
+    build:
+      context: ./vpn-client/openvpn
+      dockerfile: Dockerfile
+    container_name: beacon-openvpn
+    hostname: openvpn-client
+    restart: unless-stopped
+
+    cap_add:
+      - NET_ADMIN
+
+    devices:
+      - /dev/net/tun:/dev/net/tun
+
+    volumes:
+      - ./vpn-client/openvpn/config:/etc/openvpn/client:ro
+      - openvpn-logs:/var/log/openvpn
+
+    environment:
+      - VPN_CONFIG=client.ovpn
+
+    networks:
+      - beacon-edge-network
+
+    profiles:
+      - openvpn
+
+    healthcheck:
+      test: ["CMD", "/etc/openvpn/scripts/health-check.sh"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 120s
+
+  # WireGuard Client (alternative to OpenVPN)
+  beacon-wireguard:
+    build:
+      context: ./vpn-client/wireguard
+      dockerfile: Dockerfile
+    container_name: beacon-wireguard
+    hostname: wireguard-client
+    restart: unless-stopped
+
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+
+    volumes:
+      - ./vpn-client/wireguard/config:/etc/wireguard:ro
+      - wireguard-logs:/var/log/wireguard
+      - /lib/modules:/lib/modules:ro
+
+    environment:
+      - WG_INTERFACE=wg0
+
+    networks:
+      - beacon-edge-network
+
+    profiles:
+      - wireguard
+
+    healthcheck:
+      test: ["CMD", "/etc/wireguard/scripts/health-check.sh"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 60s
+
+  # Prometheus (Monitoring)
+  beacon-prometheus:
+    image: prom/prometheus:latest
+    container_name: beacon-prometheus
+    hostname: prometheus
+    restart: unless-stopped
+
+    ports:
+      - "9091:9090" # Prometheus web UI
+
+    volumes:
+      - ./gateway-app/docker/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--storage.tsdb.retention.time=200h"
+      - "--web.enable-lifecycle"
+
+    networks:
+      - beacon-edge-network
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:9090/-/healthy",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Grafana (Visualization)
+  beacon-grafana:
+    image: grafana/grafana:latest
+    container_name: beacon-grafana
+    hostname: grafana
+    restart: unless-stopped
+
+    ports:
+      - "3000:3000" # Grafana web UI
+
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./gateway-app/docker/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./gateway-app/docker/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=beacon_admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+
+    networks:
+      - beacon-edge-network
+
+    depends_on:
+      - beacon-prometheus
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  beacon-edge-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+
+volumes:
+  mosquitto-data:
+    driver: local
+  mosquitto-logs:
+    driver: local
+  coap-logs:
+    driver: local
+  openvpn-logs:
+    driver: local
+  wireguard-logs:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
